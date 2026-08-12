@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{C8A1B2D3-E4F5-4678-9012-3456789ABCDE}</ProjectGuid>
+    <RootNamespace>MiunaKKHelper</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <Import Project="MiunaHelperShared.projitems" Label="Shared" />
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>MiunaKKHelper</Import_RootNamespace>
+  </PropertyGroup>
+</Project>

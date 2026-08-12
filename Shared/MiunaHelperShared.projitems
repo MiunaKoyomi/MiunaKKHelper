@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>{A7B8C9D0-E1F2-3456-7890-ABCDEF123456}</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>MiunaKKHelper</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)MiunaHelperHost.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MiunaKKAPIUI.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)StudioTools\AnimationListExporter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)StudioTools\SharedTools.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)StudioTools\StudioAmbientLightSceneController.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)StudioTools\StudioAmbientLightTools.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)StudioTools\StudioAnimeCatalogLoader.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)StudioTools\StudioAnimeCategoryResolver.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)StudioTools\StudioCharacterCardExport.cs" />
+  </ItemGroup>
+</Project>
