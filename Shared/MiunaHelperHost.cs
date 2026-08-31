@@ -14,18 +14,21 @@ public static class MiunaHelperHost
     public static string Version { get; private set; } = string.Empty;
     public static string GUID { get; private set; } = string.Empty;
     public static ConfigEntry<KeyboardShortcut> Hotkey { get; private set; }
+    public static ConfigFile Config { get; private set; }
 
     public static void Initialize(
         ManualLogSource logger,
         string pluginName,
         string version,
         string guid,
-        ConfigEntry<KeyboardShortcut> hotkey)
+        ConfigEntry<KeyboardShortcut> hotkey,
+        ConfigFile config)
     {
         Logger = logger;
         PluginName = pluginName ?? "MiunaKKHelper";
         Version = version ?? string.Empty;
         GUID = guid ?? string.Empty;
         Hotkey = hotkey;
+        Config = config;
     }
 }

@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using BepInEx.Configuration;
 using BepInEx.Logging;
 using KKAPI;
 using MiunaKKHelper.StudioTools;
@@ -12,14 +14,22 @@ namespace MiunaKKHelper;
 
 public class MiunaKKAPIUI : MonoBehaviour
 {
-    internal static Rect MainWindowRect = new(500, 40, 280, 420);
+    internal static Rect MainWindowRect = new(500, 40, 300, 440);
     public static bool UIActive;
 
     static ManualLogSource Logger => MiunaHelperHost.Logger;
-    // --- 状态控制变量（默认都是开启状态 true） ---
     private bool _isDynamicBoneEnabled = true;
     private bool _isDynamicBoneVer02Enabled = true;
     private Vector2 _scroll;
+
+    ConfigEntry<bool> _foldGeneral;
+    ConfigEntry<bool> _foldAlpha;
+    ConfigEntry<bool> _foldAnim;
+    ConfigEntry<bool> _foldCard;
+    ConfigEntry<bool> _foldAmbient;
+    ConfigEntry<bool> _foldSceneName;
+    bool _foldBound;
+    GUIStyle _helpStyle;
 
     const string PaletteTitleFlat = "Miuna Ambient Flat";
     const string PaletteTitleSky = "Miuna Ambient Sky";
@@ -51,126 +61,285 @@ public class MiunaKKAPIUI : MonoBehaviour
     void OnGUI()
     {
         if (!(KoikatuAPI.GetCurrentGameMode() == GameMode.Maker || KoikatuAPI.GetCurrentGameMode() == GameMode.Studio)) return;
-        if (UIActive)
+        if (!UIActive)
+            return;
+
+        // Window 回调在同一次 OnGUI 里执行，整块面板都罩住，避免 AutoTranslator 翻 IMGUI
+        XuaImguiGuard.Run(() =>
         {
-            MainWindowRect = GUILayout.Window(33361, MainWindowRect, WindowFunction, MiunaHelperHost.PluginName + " " + MiunaHelperHost.Version, GUILayout.Width(280));
+            MainWindowRect = GUILayout.Window(33361, MainWindowRect, WindowFunction, XuaImguiGuard.Plain(MiunaHelperHost.PluginName + " " + MiunaHelperHost.Version), GUILayout.Width(300));
             KKAPI.Utilities.IMGUIUtils.EatInputInRect(MainWindowRect);
-        }
+        });
     }
 
     private void WindowFunction(int windowID)
     {
-        GUILayoutOption[] elementOptions = { GUILayout.Width(250), GUILayout.Height(28) };
+        EnsureFoldConfig();
+        GUILayoutOption[] elementOptions = { GUILayout.Width(270), GUILayout.Height(28) };
 
-        _scroll = GUILayout.BeginScrollView(_scroll, GUILayout.Height(380));
+        _scroll = GUILayout.BeginScrollView(_scroll, GUILayout.Height(390));
         GUILayout.BeginVertical();
-        
-        // 1. 标题区域
-        GUILayout.Label("MiunaTest", GUILayout.Height(22));
-        GUILayout.Space(4);
-        
-        // 2. Clear Log 按钮
-        if (GUILayout.Button("Clear Log", elementOptions))
-        {
-            ClearConsole();
-        }
-        
-        GUILayout.Space(4);
 
-        // 获取当前选中的角色 Transform
-        Transform currentSelection = GetSelectionTransform();
-        // 如果没有选中任何东西，按钮应该置灰禁用，防止空指针报错
-        GUI.enabled = (currentSelection != null);
-
-        // 3. DynamicBone 切换按钮（根据当前状态动态改变文本）
-        string dbButtonText = _isDynamicBoneEnabled ? "Disable DynamicBone" : "Enable DynamicBone";
-        if (GUILayout.Button(dbButtonText, elementOptions))
+        if (DrawFoldout("通用", _foldGeneral))
         {
-            // 状态取反
-            _isDynamicBoneEnabled = !_isDynamicBoneEnabled;
-            SetDynamicBoneEnabled(currentSelection, _isDynamicBoneEnabled);
-        }
-        
-        GUILayout.Space(4);
+            if (XuaImguiGuard.Button("Clear Log", elementOptions))
+                ClearConsole();
 
-        // 4. DynamicBoneVer02 切换按钮
-        string dbv2ButtonText = _isDynamicBoneVer02Enabled ? "Disable DynamicBoneVer02" : "Enable DynamicBoneVer02";
-        if (GUILayout.Button(dbv2ButtonText, elementOptions))
-        {
-            // 状态取反
-            _isDynamicBoneVer02Enabled = !_isDynamicBoneVer02Enabled;
-            SetDynamicBoneVer02Enabled(currentSelection, _isDynamicBoneVer02Enabled);
-        }
-        
-        GUI.enabled = true; // 恢复 GUI 状态
+            GUILayout.Space(4);
+            Transform currentSelection = GetSelectionTransform();
+            GUI.enabled = currentSelection != null;
 
-        if (GUILayout.Button("ShowDynamicBone", elementOptions))
-        {
-            ShowDynamicBone(GetSelectionTransform());
+            string dbButtonText = _isDynamicBoneEnabled ? "Disable DynamicBone" : "Enable DynamicBone";
+            if (XuaImguiGuard.Button(dbButtonText, elementOptions))
+            {
+                _isDynamicBoneEnabled = !_isDynamicBoneEnabled;
+                SetDynamicBoneEnabled(currentSelection, _isDynamicBoneEnabled);
+            }
+
+            GUILayout.Space(4);
+            string dbv2ButtonText = _isDynamicBoneVer02Enabled ? "Disable DynamicBoneVer02" : "Enable DynamicBoneVer02";
+            if (XuaImguiGuard.Button(dbv2ButtonText, elementOptions))
+            {
+                _isDynamicBoneVer02Enabled = !_isDynamicBoneVer02Enabled;
+                SetDynamicBoneVer02Enabled(currentSelection, _isDynamicBoneVer02Enabled);
+            }
+
+            GUI.enabled = true;
+
+            Transform characterRoot = GetCharacterRoot();
+            GUI.enabled = characterRoot != null;
+            if (XuaImguiGuard.Button("Enable All DynamicBone", elementOptions))
+            {
+                EnableAllDynamicBones(characterRoot);
+                _isDynamicBoneEnabled = true;
+                _isDynamicBoneVer02Enabled = true;
+            }
+            GUI.enabled = true;
+
+            if (XuaImguiGuard.Button("ShowDynamicBone", elementOptions))
+                ShowDynamicBone(characterRoot ?? GetSelectionTransform());
         }
 
-        GUILayout.Space(4);
-        GUI.enabled = KoikatuAPI.GetCurrentGameMode() == GameMode.Studio;
-        string exportLabel = AnimationListExporter.HasCache
-            ? "Export Animation Catalog (" + AnimationListExporter.CachedCount + ")"
-            : "Export Animation Catalog (no cache)";
-        if (GUILayout.Button(exportLabel, elementOptions))
-        {
-            StartCoroutine(ExportAnimationCatalogCoroutine());
-        }
-        GUI.enabled = true;
+        DrawAlphaMaskSection(elementOptions);
 
         if (KoikatuAPI.GetCurrentGameMode() == GameMode.Studio)
         {
+            if (DrawFoldout("Studio 动作", _foldAnim))
+            {
+                string exportLabel = AnimationListExporter.HasCache
+                    ? "Export Animation Catalog (" + AnimationListExporter.CachedCount + ")"
+                    : "Export Animation Catalog (no cache)";
+                if (XuaImguiGuard.Button(exportLabel, elementOptions))
+                    StartCoroutine(ExportAnimationCatalogCoroutine());
+            }
+
             DrawStudioCardExportSection(elementOptions);
+            DrawStudioSceneNameSection(elementOptions);
             DrawStudioAmbientSection(elementOptions);
         }
 
         GUILayout.EndVertical();
         GUILayout.EndScrollView();
-
-        // 顶部的拖拽区域
         GUI.DragWindow(new Rect(0, 0, MainWindowRect.width, 25));
+    }
+
+    void EnsureFoldConfig()
+    {
+        if (_foldBound || MiunaHelperHost.Config == null)
+            return;
+
+        _foldBound = true;
+        ConfigFile cfg = MiunaHelperHost.Config;
+        _foldGeneral = cfg.Bind("UI", "FoldGeneral", true, "展开「通用」");
+        _foldAlpha = cfg.Bind("UI", "FoldAlpha", true, "展开「Alpha Mask」");
+        _foldAnim = cfg.Bind("UI", "FoldAnim", true, "展开「Studio 动作」");
+        _foldCard = cfg.Bind("UI", "FoldCard", true, "展开「提取角色卡」");
+        _foldAmbient = cfg.Bind("UI", "FoldAmbient", true, "展开「Studio 环境光」");
+        _foldSceneName = cfg.Bind("UI", "FoldSceneName", true, "展开「场景名」");
+    }
+
+    bool DrawFoldout(string title, ConfigEntry<bool> entry)
+    {
+        if (entry == null)
+            return true;
+
+        GUILayout.Space(6);
+        bool open = entry.Value;
+        string mark = open ? "▼  " : "▶  ";
+        if (XuaImguiGuard.Button(mark + title, GUILayout.Height(24)))
+            entry.Value = !open;
+        return entry.Value;
+    }
+
+    GUIStyle HelpStyle()
+    {
+        if (_helpStyle == null)
+        {
+            _helpStyle = new GUIStyle(GUI.skin.label);
+            _helpStyle.wordWrap = true;
+        }
+        return _helpStyle;
+    }
+
+    void DrawAlphaMaskSection(GUILayoutOption[] elementOptions)
+    {
+        if (!DrawFoldout("Alpha Mask", _foldAlpha))
+            return;
+
+        XuaImguiGuard.Label("MaterialEditor 把 alpha_a / alpha_b hide 了。", HelpStyle());
+        XuaImguiGuard.Label("Studio：Workspace 选中角色。Maker：当前捏人。", HelpStyle());
+        GUILayout.Space(4);
+
+        var targets = GetTargetChaControls();
+        if (targets.Count == 0)
+        {
+            GUI.enabled = false;
+            XuaImguiGuard.Label("未选中角色", HelpStyle());
+            DrawAlphaSliderRow("alpha_a", 0f);
+            DrawAlphaSliderRow("alpha_b", 0f);
+            GUI.enabled = true;
+            return;
+        }
+
+        ChaControl primary = targets[0];
+        CharacterAlphaMaskTools.TryRead(primary, out float alphaA, out float alphaB);
+        string name = CharacterAlphaMaskTools.GetDisplayName(primary);
+        if (targets.Count > 1)
+            name += " +" + (targets.Count - 1);
+        XuaImguiGuard.Label("目标: " + name, HelpStyle());
+
+        float newA = DrawAlphaSliderRow("alpha_a", alphaA);
+        float newB = DrawAlphaSliderRow("alpha_b", alphaB);
+        if (!Mathf.Approximately(newA, alphaA) || !Mathf.Approximately(newB, alphaB))
+            ApplyAlphaMaskToTargets(targets, newA, newB);
+
+        GUILayout.BeginHorizontal();
+        if (XuaImguiGuard.Button("穿 1,1", GUILayout.Height(24)))
+            ApplyAlphaMaskToTargets(targets, 1f, 1f);
+        if (XuaImguiGuard.Button("半 0,1", GUILayout.Height(24)))
+            ApplyAlphaMaskToTargets(targets, 0f, 1f);
+        if (XuaImguiGuard.Button("脱 0,0", GUILayout.Height(24)))
+            ApplyAlphaMaskToTargets(targets, 0f, 0f);
+        GUILayout.EndHorizontal();
+
+        bool locked = AllAlphaLocked(targets);
+        bool nextLocked = XuaImguiGuard.Toggle(locked, "锁定（穿脱不覆盖）", elementOptions);
+        if (nextLocked != locked)
+        {
+            CharacterAlphaMaskTools.TryRead(primary, out float lockA, out float lockB);
+            for (int i = 0; i < targets.Count; i++)
+                CharacterAlphaMaskTools.SetLocked(targets[i], nextLocked, lockA, lockB);
+        }
+    }
+
+    static float DrawAlphaSliderRow(string label, float value)
+    {
+        GUILayout.BeginHorizontal();
+        XuaImguiGuard.Label(label, GUILayout.Width(56));
+        float next = GUILayout.HorizontalSlider(value, 0f, 1f, GUILayout.MinWidth(140), GUILayout.Height(18));
+        XuaImguiGuard.Label(next.ToString("0.00"), GUILayout.Width(36));
+        GUILayout.EndHorizontal();
+        return next;
+    }
+
+    static void ApplyAlphaMaskToTargets(List<ChaControl> targets, float alphaA, float alphaB)
+    {
+        for (int i = 0; i < targets.Count; i++)
+            CharacterAlphaMaskTools.Apply(targets[i], alphaA, alphaB);
+    }
+
+    static bool AllAlphaLocked(List<ChaControl> targets)
+    {
+        if (targets.Count == 0)
+            return false;
+        for (int i = 0; i < targets.Count; i++)
+        {
+            if (!CharacterAlphaMaskTools.IsLocked(targets[i]))
+                return false;
+        }
+        return true;
     }
 
     void DrawStudioCardExportSection(GUILayoutOption[] elementOptions)
     {
-        GUILayout.Space(8);
-        GUILayout.Label("—— 提取角色卡 ——", GUILayout.Height(20));
-        GUILayout.Label(
-            "把 Studio 场景角色存成 png 卡，写入 UserData/chara/male 或 female。",
-            GUILayout.Height(32));
+        if (!DrawFoldout("提取角色卡", _foldCard))
+            return;
+
+        XuaImguiGuard.Label("把 Studio 场景角色存成 png 卡。", HelpStyle());
+        XuaImguiGuard.Label("路径: UserData/chara/male 或 female", HelpStyle());
+        GUILayout.Space(4);
 
         int selected = StudioCharacterCardExport.CountSelectedCharacters();
         GUI.enabled = selected > 0;
-        if (GUILayout.Button("提取选中角色 (" + selected + ")", elementOptions))
+        if (XuaImguiGuard.Button("提取选中角色 (" + selected + ")", elementOptions))
             StudioCharacterCardExport.ExportSelected();
         GUI.enabled = true;
 
         int sceneCount = StudioCharacterCardExport.CountSceneCharacters();
         GUI.enabled = sceneCount > 0;
-        if (GUILayout.Button("提取场景全部角色 (" + sceneCount + ")", elementOptions))
+        if (XuaImguiGuard.Button("提取场景全部角色 (" + sceneCount + ")", elementOptions))
             StudioCharacterCardExport.ExportAllInScene();
         GUI.enabled = true;
 
         if (!string.IsNullOrEmpty(StudioCharacterCardExport.LastResult))
-            GUILayout.Label(StudioCharacterCardExport.LastResult, GUILayout.Height(36));
+        {
+            GUILayout.Space(2);
+            XuaImguiGuard.Label(StudioCharacterCardExport.LastResult, HelpStyle());
+        }
 
         GUI.enabled = !string.IsNullOrEmpty(StudioCharacterCardExport.LastExportDirectory);
-        if (GUILayout.Button("打开导出目录", elementOptions))
+        if (XuaImguiGuard.Button("打开导出目录", elementOptions))
             StudioCharacterCardExport.OpenLastExportFolder();
         GUI.enabled = true;
     }
 
+    void DrawStudioSceneNameSection(GUILayoutOption[] elementOptions)
+    {
+        if (!DrawFoldout("场景名", _foldSceneName))
+            return;
+
+        XuaImguiGuard.Label("绑定到场景 png 的显示名，类似角色卡 author。『写入并保存场景』会调用原版保存并新建一个场景 PNG。", HelpStyle());
+        GUILayout.Space(4);
+
+        string next = GUILayout.TextField(StudioSceneNameTools.CurrentName ?? "", elementOptions);
+        if (next != (StudioSceneNameTools.CurrentName ?? ""))
+            StudioSceneNameTools.SetName(next);
+
+        string draft = StudioSceneNameTools.TrimmedName;
+        string bound = StudioSceneNameTools.TryReadFromExtendedSave();
+        string status;
+        if (string.IsNullOrEmpty(bound) && string.IsNullOrEmpty(draft))
+            status = "未绑定。输入名称后点『写入并保存场景』，重启后请加载新生成的 PNG。";
+        else if (string.Equals(draft, bound, StringComparison.Ordinal))
+            status = "已绑定：" + bound;
+        else
+            status = "未写入。输入框："
+                + (string.IsNullOrEmpty(draft) ? "（空）" : draft)
+                + "；存档："
+                + (string.IsNullOrEmpty(bound) ? "无" : bound);
+
+        XuaImguiGuard.Label(status, HelpStyle());
+
+        GUILayout.BeginHorizontal();
+        if (XuaImguiGuard.Button("写入并保存场景", GUILayout.Height(24)))
+            StudioSceneNameTools.PersistAndSaveScene();
+        if (XuaImguiGuard.Button("从存档读取", GUILayout.Height(24)))
+            StudioSceneNameTools.SetName(StudioSceneNameTools.TryReadFromExtendedSave());
+        if (XuaImguiGuard.Button("清空", GUILayout.Height(24)))
+            StudioSceneNameTools.Clear();
+        GUILayout.EndHorizontal();
+    }
+
     void DrawStudioAmbientSection(GUILayoutOption[] elementOptions)
     {
-        GUILayout.Space(8);
-        GUILayout.Label("—— Studio 环境光 ——", GUILayout.Height(20));
-        GUILayout.Label(
-            "原版只有全体陰影，不能调 RenderSettings Ambient。\n开启覆盖后可调色/强度，并写入场景存档。",
-            GUILayout.Height(36));
+        if (!DrawFoldout("Studio 环境光", _foldAmbient))
+            return;
 
-        bool enabled = GUILayout.Toggle(StudioAmbientLightTools.OverrideEnabled, "覆盖环境光 (Ambient)", elementOptions);
+        XuaImguiGuard.Label("原版只有全体陰影，不能调 RenderSettings Ambient。", HelpStyle());
+        XuaImguiGuard.Label("开启覆盖后可调色/强度，并写入场景存档。", HelpStyle());
+        GUILayout.Space(4);
+
+        bool enabled = XuaImguiGuard.Toggle(StudioAmbientLightTools.OverrideEnabled, "覆盖环境光 (Ambient)", elementOptions);
         if (enabled != StudioAmbientLightTools.OverrideEnabled)
         {
             if (enabled)
@@ -189,24 +358,24 @@ public class MiunaKKAPIUI : MonoBehaviour
         GUI.enabled = StudioAmbientLightTools.OverrideEnabled;
 
         GUILayout.BeginHorizontal();
-        if (GUILayout.Button("Flat", GUILayout.Height(24)))
+        if (XuaImguiGuard.Button("Flat", GUILayout.Height(24)))
         {
             StudioAmbientLightTools.Mode = AmbientMode.Flat;
             StudioAmbientLightTools.Apply();
         }
-        if (GUILayout.Button("Trilight", GUILayout.Height(24)))
+        if (XuaImguiGuard.Button("Trilight", GUILayout.Height(24)))
         {
             StudioAmbientLightTools.Mode = AmbientMode.Trilight;
             StudioAmbientLightTools.Apply();
         }
-        if (GUILayout.Button("Skybox", GUILayout.Height(24)))
+        if (XuaImguiGuard.Button("Skybox", GUILayout.Height(24)))
         {
             StudioAmbientLightTools.Mode = AmbientMode.Skybox;
             StudioAmbientLightTools.Apply();
         }
         GUILayout.EndHorizontal();
 
-        GUILayout.Label(
+        XuaImguiGuard.Label(
             "Mode: " + StudioAmbientLightTools.DescribeMode(StudioAmbientLightTools.Mode)
             + " | live: " + StudioAmbientLightTools.DescribeMode(RenderSettings.ambientMode));
 
@@ -216,7 +385,7 @@ public class MiunaKKAPIUI : MonoBehaviour
             StudioAmbientLightTools.Intensity = intensity;
             StudioAmbientLightTools.Apply();
         }
-        GUILayout.Label("Intensity: " + StudioAmbientLightTools.Intensity.ToString("0.00"));
+        XuaImguiGuard.Label("Intensity: " + StudioAmbientLightTools.Intensity.ToString("0.00"));
 
         // 与 MaterialEditor / 原版雾效相同：点色块 → Studio 调色盘
         if (StudioAmbientLightTools.Mode == AmbientMode.Flat
@@ -265,14 +434,14 @@ public class MiunaKKAPIUI : MonoBehaviour
             }
         }
 
-        if (GUILayout.Button("从当前场景读取 Ambient", elementOptions))
+        if (XuaImguiGuard.Button("从当前场景读取 Ambient", elementOptions))
         {
             StudioAmbientLightTools.CaptureFromRenderSettings();
             StudioAmbientLightTools.Apply();
             RefreshOpenStudioColorPalette();
         }
 
-        if (GUILayout.Button("恢复开启前的 Ambient", elementOptions))
+        if (XuaImguiGuard.Button("恢复开启前的 Ambient", elementOptions))
         {
             StudioAmbientLightTools.RestoreBaseline();
             CloseStudioColorPalette();
@@ -285,10 +454,10 @@ public class MiunaKKAPIUI : MonoBehaviour
     {
         string title = LabelToPaletteTitle(label);
         GUILayout.BeginHorizontal();
-        GUILayout.Label(label, GUILayout.Width(100), GUILayout.Height(28));
+        XuaImguiGuard.Label(label, GUILayout.Width(100), GUILayout.Height(28));
 
         bool clicked = DrawColorSwatchButton(color, 56, 28);
-        if (GUILayout.Button("调色盘", GUILayout.Width(60), GUILayout.Height(28)))
+        if (XuaImguiGuard.Button("调色盘", GUILayout.Width(60), GUILayout.Height(28)))
             clicked = true;
 
         GUILayout.EndHorizontal();
@@ -442,6 +611,40 @@ public class MiunaKKAPIUI : MonoBehaviour
         }
 
         MiunaHelperHost.Logger.LogWarning($"已将选中目标的 {components.Length} 个 DynamicBone_Ver02 状态设为: {enabled}");
+    }
+
+    static void EnableAllDynamicBones(Transform root)
+    {
+        if (root == null)
+        {
+            MiunaHelperHost.Logger.LogWarning("Enable All DynamicBone：未找到角色根（捏人当前角色 / Studio 选中对象）");
+            return;
+        }
+
+        SetDynamicBoneEnabled(root, true);
+        SetDynamicBoneVer02Enabled(root, true);
+
+        var ver01 = root.GetComponentsInChildren<DynamicBone_Ver01>(true);
+        int ver01Count = 0;
+        foreach (DynamicBone_Ver01 bone in ver01)
+        {
+            if (bone == null)
+                continue;
+            bone.enabled = true;
+            ver01Count++;
+        }
+
+        ChaControl cha = root.GetComponent<ChaControl>()
+                         ?? root.GetComponentInParent<ChaControl>()
+                         ?? root.GetComponentInChildren<ChaControl>(true);
+        if (cha != null)
+        {
+            cha.playDynamicBoneBust(0, true);
+            cha.playDynamicBoneBust(1, true);
+        }
+
+        if (ver01Count > 0)
+            MiunaHelperHost.Logger.LogWarning($"已将选中目标的 {ver01Count} 个 DynamicBone_Ver01 状态设为: True");
     }
 
     

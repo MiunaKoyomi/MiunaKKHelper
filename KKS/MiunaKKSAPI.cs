@@ -16,7 +16,7 @@ public class MiunaKKSAPI : BaseUnityPlugin
 {
     public const string PluginName = "MiunaKKSHelper";
     public const string GUID = "org.miuna.plugins.KKSHelper";
-    public const string Version = "1.1.0";
+    public const string Version = "1.1.3";
 
     internal new static ManualLogSource Logger;
 
@@ -29,10 +29,15 @@ public class MiunaKKSAPI : BaseUnityPlugin
         Logger = base.Logger;
         KeyboardShortcut defaultShortcut = new KeyboardShortcut(KeyCode.M, KeyCode.LeftAlt);
         hotkey = Config.Bind("Miuna_KKSHelper", "Hotkey", defaultShortcut, "Press this key to open the UI");
-        MiunaHelperHost.Initialize(Logger, PluginName, Version, GUID, hotkey);
+        MiunaHelperHost.Initialize(Logger, PluginName, Version, GUID, hotkey, Config);
         new Harmony(GUID).PatchAll(typeof(MiunaKKSAPI).Assembly);
         UI = this.GetOrAddComponent<MiunaKKAPIUI>();
-        StudioSaveLoadApi.RegisterExtraBehaviour<StudioAmbientLightSceneController>(GUID);
         Logger.LogInfo($"MiunaKKSHelper v{Version} loaded from {Info.Location}");
+    }
+
+    public void Start()
+    {
+        StudioSaveLoadApi.RegisterExtraBehaviour<StudioAmbientLightSceneController>(GUID);
+        StudioSaveLoadApi.RegisterExtraBehaviour<StudioSceneNameSceneController>(StudioSceneNameTools.ExtendedDataId);
     }
 }

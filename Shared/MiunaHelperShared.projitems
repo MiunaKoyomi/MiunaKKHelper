@@ -11,10 +11,14 @@
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)MiunaHelperHost.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MiunaKKAPIUI.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)XuaImguiGuard.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)StudioTools\AnimationListExporter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)StudioTools\CharacterAlphaMaskTools.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)StudioTools\SharedTools.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)StudioTools\StudioAmbientLightSceneController.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)StudioTools\StudioAmbientLightTools.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)StudioTools\StudioSceneNameSceneController.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)StudioTools\StudioSceneNameTools.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)StudioTools\StudioAnimeCatalogLoader.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)StudioTools\StudioAnimeCategoryResolver.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)StudioTools\StudioCharacterCardExport.cs" />
