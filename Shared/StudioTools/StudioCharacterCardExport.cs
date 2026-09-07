@@ -19,6 +19,27 @@ public static class StudioCharacterCardExport
     public static string LastExportDirectory { get; private set; }
     public static string LastResult { get; private set; }
 
+    /// <summary>Shared snapshot entry for the exporter; preserves the live character's source filename.</summary>
+    public static bool SaveCharacterCard(ChaControl cha, string path)
+    {
+        if (cha == null || cha.chaFile == null)
+            throw new ArgumentNullException(nameof(cha));
+        if (cha.chaFile.pngData == null || cha.chaFile.pngData.Length < 8)
+            throw new InvalidOperationException("角色没有 PNG 预览数据，请先在游戏中保存一张带预览的角色卡。");
+        path = Path.GetFullPath(path);
+        Directory.CreateDirectory(Path.GetDirectoryName(path));
+        string temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write))
+                if (!cha.chaFile.SaveCharaFile(stream, true)) return false;
+            if (File.Exists(path)) File.Replace(temporary, path, null);
+            else File.Move(temporary, path);
+            return true;
+        }
+        finally { if (File.Exists(temporary)) File.Delete(temporary); }
+    }
+
     public static int CountSelectedCharacters()
     {
         int n = 0;
@@ -98,7 +119,7 @@ public static class StudioCharacterCardExport
                 if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
                     Directory.CreateDirectory(dir);
 
-                bool saved = cha.chaFile.SaveCharaFile(path, cha.chaFile.parameter.sex, false);
+                bool saved = SaveCharacterCard(cha, path);
                 if (!saved || !File.Exists(path))
                 {
                     MiunaHelperHost.Logger.LogError("[CardExport] 保存失败: " + path);
