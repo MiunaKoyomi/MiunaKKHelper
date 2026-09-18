@@ -1,0 +1,19 @@
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <AssemblyName>MiunaCardPreferenceTests</AssemblyName>
+    <OutputPath>bin/</OutputPath>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml" />
+    <Compile Include="Program.cs" /><Compile Include="../../Shared/CardFavorites/CardOutfitNameStore.cs" Link="CardOutfitNameStore.cs" />
+    <Compile Include="../../Shared/CardFavorites/CardPreferenceFilter.cs" Link="CardPreferenceFilter.cs" />
+    <Compile Include="../../../KKExporterShared/CommonTools/CardPngIdentity.cs" Link="CardPngIdentity.cs" />
+    <Compile Include="../../Shared/CardFavorites/CardPreferenceStore.cs" Link="CardPreferenceStore.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)/Microsoft.CSharp.targets" />
+</Project>

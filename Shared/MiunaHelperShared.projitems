@@ -9,6 +9,13 @@
     <Import_RootNamespace>MiunaKKHelper</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\KKExporterShared\CommonTools\CardPngIdentity.cs" Link="CardFavorites\CardPngIdentity.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CardFavorites\CardPreferenceStore.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CardFavorites\CardPreferenceFilter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CardFavorites\CardOutfitNameStore.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CardFavorites\CardOutfitNames.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CardFavorites\CardFrameGraphic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CardFavorites\MakerCardFavorites.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MiunaHelperHost.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MiunaKKAPIUI.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)XuaImguiGuard.cs" />

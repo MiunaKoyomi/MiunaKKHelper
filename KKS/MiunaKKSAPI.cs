@@ -1,4 +1,4 @@
-using BepInEx;
+﻿using BepInEx;
 using BepInEx.Logging;
 using BepInEx.Configuration;
 using HarmonyLib;
@@ -16,7 +16,7 @@ public class MiunaKKSAPI : BaseUnityPlugin
 {
     public const string PluginName = "MiunaKKSHelper";
     public const string GUID = "org.miuna.plugins.KKSHelper";
-    public const string Version = "1.1.3";
+    public const string Version = "1.2.9";
 
     internal new static ManualLogSource Logger;
 
@@ -32,6 +32,7 @@ public class MiunaKKSAPI : BaseUnityPlugin
         MiunaHelperHost.Initialize(Logger, PluginName, Version, GUID, hotkey, Config);
         new Harmony(GUID).PatchAll(typeof(MiunaKKSAPI).Assembly);
         UI = this.GetOrAddComponent<MiunaKKAPIUI>();
+        this.GetOrAddComponent<CardFavorites.MakerCardFavorites>();
         Logger.LogInfo($"MiunaKKSHelper v{Version} loaded from {Info.Location}");
     }
 
