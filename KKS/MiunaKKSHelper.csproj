@@ -87,6 +87,9 @@
         <Reference Include="UnityEngine.PhysicsModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
           <HintPath>..\packages\IllusionLibs.KoikatsuSunshine.UnityEngine.PhysicsModule.2019.4.9\lib\net46\UnityEngine.PhysicsModule.dll</HintPath>
         </Reference>
+        <Reference Include="UnityEngine.TextRenderingModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+          <HintPath>..\packages\IllusionLibs.KoikatsuSunshine.UnityEngine.TextRenderingModule.2019.4.9\lib\net46\UnityEngine.TextRenderingModule.dll</HintPath>
+        </Reference>
         <Reference Include="UnityEngine.UI, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
           <HintPath>..\packages\IllusionLibs.KoikatsuSunshine.UnityEngine.UI.2019.4.9\lib\net46\UnityEngine.UI.dll</HintPath>
         </Reference>
@@ -125,6 +128,7 @@
       <Error Condition="!Exists('..\packages\IllusionLibs.KoikatsuSunshine.UnityEngine.UI.2019.4.9\build\IllusionLibs.KoikatsuSunshine.UnityEngine.UI.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\IllusionLibs.KoikatsuSunshine.UnityEngine.UI.2019.4.9\build\IllusionLibs.KoikatsuSunshine.UnityEngine.UI.targets'))" />
       <Error Condition="!Exists('..\packages\IllusionLibs.KoikatsuSunshine.UnityEngine.UIModule.2019.4.9\build\IllusionLibs.KoikatsuSunshine.UnityEngine.UIModule.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\IllusionLibs.KoikatsuSunshine.UnityEngine.UIModule.2019.4.9\build\IllusionLibs.KoikatsuSunshine.UnityEngine.UIModule.targets'))" />
       <Error Condition="!Exists('..\packages\IllusionLibs.KoikatsuSunshine.UnityEngine.PhysicsModule.2019.4.9\build\IllusionLibs.KoikatsuSunshine.UnityEngine.PhysicsModule.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\IllusionLibs.KoikatsuSunshine.UnityEngine.PhysicsModule.2019.4.9\build\IllusionLibs.KoikatsuSunshine.UnityEngine.PhysicsModule.targets'))" />
+      <Error Condition="!Exists('..\packages\IllusionLibs.KoikatsuSunshine.UnityEngine.TextRenderingModule.2019.4.9\build\IllusionLibs.KoikatsuSunshine.UnityEngine.TextRenderingModule.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\IllusionLibs.KoikatsuSunshine.UnityEngine.TextRenderingModule.2019.4.9\build\IllusionLibs.KoikatsuSunshine.UnityEngine.TextRenderingModule.targets'))" />
     </Target>
     <Import Project="..\packages\IllusionLibs.KoikatsuSunshine.UniRx.2021.9.17\build\IllusionLibs.KoikatsuSunshine.UniRx.targets" Condition="Exists('..\packages\IllusionLibs.KoikatsuSunshine.UniRx.2021.9.17\build\IllusionLibs.KoikatsuSunshine.UniRx.targets')" />
     <Import Project="..\packages\IllusionLibs.KoikatsuSunshine.UniTask.2021.9.17\build\IllusionLibs.KoikatsuSunshine.UniTask.targets" Condition="Exists('..\packages\IllusionLibs.KoikatsuSunshine.UniTask.2021.9.17\build\IllusionLibs.KoikatsuSunshine.UniTask.targets')" />
@@ -137,4 +141,5 @@
     <Import Project="..\packages\IllusionLibs.KoikatsuSunshine.UnityEngine.UI.2019.4.9\build\IllusionLibs.KoikatsuSunshine.UnityEngine.UI.targets" Condition="Exists('..\packages\IllusionLibs.KoikatsuSunshine.UnityEngine.UI.2019.4.9\build\IllusionLibs.KoikatsuSunshine.UnityEngine.UI.targets')" />
     <Import Project="..\packages\IllusionLibs.KoikatsuSunshine.UnityEngine.UIModule.2019.4.9\build\IllusionLibs.KoikatsuSunshine.UnityEngine.UIModule.targets" Condition="Exists('..\packages\IllusionLibs.KoikatsuSunshine.UnityEngine.UIModule.2019.4.9\build\IllusionLibs.KoikatsuSunshine.UnityEngine.UIModule.targets')" />
     <Import Project="..\packages\IllusionLibs.KoikatsuSunshine.UnityEngine.PhysicsModule.2019.4.9\build\IllusionLibs.KoikatsuSunshine.UnityEngine.PhysicsModule.targets" Condition="Exists('..\packages\IllusionLibs.KoikatsuSunshine.UnityEngine.PhysicsModule.2019.4.9\build\IllusionLibs.KoikatsuSunshine.UnityEngine.PhysicsModule.targets')" />
+    <Import Project="..\packages\IllusionLibs.KoikatsuSunshine.UnityEngine.TextRenderingModule.2019.4.9\build\IllusionLibs.KoikatsuSunshine.UnityEngine.TextRenderingModule.targets" Condition="Exists('..\packages\IllusionLibs.KoikatsuSunshine.UnityEngine.TextRenderingModule.2019.4.9\build\IllusionLibs.KoikatsuSunshine.UnityEngine.TextRenderingModule.targets')" />
 </Project>

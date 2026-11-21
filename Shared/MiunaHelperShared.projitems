@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)..\..\KKExporterShared\CommonTools\CardPngIdentity.cs" Link="CardFavorites\CardPngIdentity.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\KKExporterShared\UI\MiunaGuiTheme.cs" Link="MiunaGuiTheme.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)CardFavorites\CardPreferenceStore.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)CardFavorites\CardPreferenceFilter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)CardFavorites\CardOutfitNameStore.cs" />
@@ -21,6 +22,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)XuaImguiGuard.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)StudioTools\AnimationListExporter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)StudioTools\CharacterAlphaMaskTools.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)StudioTools\CharacterExpressionNames.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)StudioTools\SharedTools.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)StudioTools\StudioAmbientLightSceneController.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)StudioTools\StudioAmbientLightTools.cs" />

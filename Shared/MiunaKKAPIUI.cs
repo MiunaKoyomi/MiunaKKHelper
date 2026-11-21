@@ -6,6 +6,7 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using KKAPI;
 using MiunaKKHelper.StudioTools;
+using MiunaPlugin.UI;
 using static MiunaKKHelper.StudioTools.SharedTools;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -14,7 +15,8 @@ namespace MiunaKKHelper;
 
 public class MiunaKKAPIUI : MonoBehaviour
 {
-    internal static Rect MainWindowRect = new(500, 40, 300, 440);
+    const int WindowId = 94152731;
+    internal static Rect MainWindowRect = new(128, 62, 338, 510);
     public static bool UIActive;
 
     static ManualLogSource Logger => MiunaHelperHost.Logger;
@@ -22,6 +24,7 @@ public class MiunaKKAPIUI : MonoBehaviour
     private bool _isDynamicBoneVer02Enabled = true;
     private Vector2 _scroll;
 
+    ConfigEntry<bool> _foldExpression;
     ConfigEntry<bool> _foldGeneral;
     ConfigEntry<bool> _foldAlpha;
     ConfigEntry<bool> _foldAnim;
@@ -29,7 +32,7 @@ public class MiunaKKAPIUI : MonoBehaviour
     ConfigEntry<bool> _foldAmbient;
     ConfigEntry<bool> _foldSceneName;
     bool _foldBound;
-    GUIStyle _helpStyle;
+    MiunaGuiTheme _theme;
 
     const string PaletteTitleFlat = "Miuna Ambient Flat";
     const string PaletteTitleSky = "Miuna Ambient Sky";
@@ -38,6 +41,8 @@ public class MiunaKKAPIUI : MonoBehaviour
 
     /// <summary>IMGUI 色块用：GUI.backgroundColor 在游戏皮肤下染不上色。</summary>
     static Texture2D _imguiWhitePixel;
+
+    void OnDestroy() => _theme?.Dispose();
 
     void Update()
     {
@@ -67,7 +72,17 @@ public class MiunaKKAPIUI : MonoBehaviour
         // Window 回调在同一次 OnGUI 里执行，整块面板都罩住，避免 AutoTranslator 翻 IMGUI
         XuaImguiGuard.Run(() =>
         {
-            MainWindowRect = GUILayout.Window(33361, MainWindowRect, WindowFunction, XuaImguiGuard.Plain(MiunaHelperHost.PluginName + " " + MiunaHelperHost.Version), GUILayout.Width(300));
+            var previousSkin = GUI.skin;
+            if (_theme == null) _theme = new MiunaGuiTheme(previousSkin);
+            MainWindowRect.height = Mathf.Clamp(Screen.height - 20, 220, 510);
+            MainWindowRect.x = Mathf.Clamp(MainWindowRect.x, 0f, Mathf.Max(0f, Screen.width - MainWindowRect.width));
+            MainWindowRect.y = Mathf.Clamp(MainWindowRect.y, 0f, Mathf.Max(0f, Screen.height - MainWindowRect.height));
+            try
+            {
+                GUI.skin = _theme.Skin;
+                MainWindowRect = GUI.Window(WindowId, MainWindowRect, WindowFunction, string.Empty);
+            }
+            finally { GUI.skin = previousSkin; }
             KKAPI.Utilities.IMGUIUtils.EatInputInRect(MainWindowRect);
         });
     }
@@ -75,12 +90,22 @@ public class MiunaKKAPIUI : MonoBehaviour
     private void WindowFunction(int windowID)
     {
         EnsureFoldConfig();
-        GUILayoutOption[] elementOptions = { GUILayout.Width(270), GUILayout.Height(28) };
+        GUILayout.BeginHorizontal();
+        GUILayout.Label(XuaImguiGuard.Plain(MiunaHelperHost.PluginName + " " + MiunaHelperHost.Version),
+            _theme.Header(UiTone.Teal), GUILayout.Height(30), GUILayout.ExpandWidth(true));
+        if (XuaImguiGuard.Button("关闭", GUILayout.Width(58), GUILayout.Height(30)))
+            UIActive = false;
+        GUILayout.EndHorizontal();
+        if (!UIActive)
+            return;
 
-        _scroll = GUILayout.BeginScrollView(_scroll, GUILayout.Height(390));
+        GUILayoutOption[] elementOptions = { GUILayout.ExpandWidth(true), GUILayout.Height(28) };
+        _scroll = GUILayout.BeginScrollView(_scroll, GUILayout.Height(Mathf.Max(100f, MainWindowRect.height - 56f)));
         GUILayout.BeginVertical();
 
-        if (DrawFoldout("通用", _foldGeneral))
+        DrawExpressionSection();
+
+        if (DrawFoldout("通用", _foldGeneral, UiTone.Blue))
         {
             if (XuaImguiGuard.Button("Clear Log", elementOptions))
                 ClearConsole();
@@ -124,12 +149,12 @@ public class MiunaKKAPIUI : MonoBehaviour
 
         if (KoikatuAPI.GetCurrentGameMode() == GameMode.Studio)
         {
-            if (DrawFoldout("Studio 动作", _foldAnim))
+            if (DrawFoldout("Studio 动作", _foldAnim, UiTone.Violet))
             {
                 string exportLabel = AnimationListExporter.HasCache
                     ? "Export Animation Catalog (" + AnimationListExporter.CachedCount + ")"
                     : "Export Animation Catalog (no cache)";
-                if (XuaImguiGuard.Button(exportLabel, elementOptions))
+                if (ActionButton(exportLabel, UiTone.Violet, elementOptions))
                     StartCoroutine(ExportAnimationCatalogCoroutine());
             }
 
@@ -140,7 +165,7 @@ public class MiunaKKAPIUI : MonoBehaviour
 
         GUILayout.EndVertical();
         GUILayout.EndScrollView();
-        GUI.DragWindow(new Rect(0, 0, MainWindowRect.width, 25));
+        GUI.DragWindow(new Rect(0, 0, MainWindowRect.width - 75f, 40));
     }
 
     void EnsureFoldConfig()
@@ -150,6 +175,7 @@ public class MiunaKKAPIUI : MonoBehaviour
 
         _foldBound = true;
         ConfigFile cfg = MiunaHelperHost.Config;
+        _foldExpression = cfg.Bind("UI", "FoldExpression", true, "展开「当前表情」");
         _foldGeneral = cfg.Bind("UI", "FoldGeneral", true, "展开「通用」");
         _foldAlpha = cfg.Bind("UI", "FoldAlpha", true, "展开「Alpha Mask」");
         _foldAnim = cfg.Bind("UI", "FoldAnim", true, "展开「Studio 动作」");
@@ -158,7 +184,7 @@ public class MiunaKKAPIUI : MonoBehaviour
         _foldSceneName = cfg.Bind("UI", "FoldSceneName", true, "展开「场景名」");
     }
 
-    bool DrawFoldout(string title, ConfigEntry<bool> entry)
+    bool DrawFoldout(string title, ConfigEntry<bool> entry, UiTone tone)
     {
         if (entry == null)
             return true;
@@ -166,24 +192,56 @@ public class MiunaKKAPIUI : MonoBehaviour
         GUILayout.Space(6);
         bool open = entry.Value;
         string mark = open ? "▼  " : "▶  ";
-        if (XuaImguiGuard.Button(mark + title, GUILayout.Height(24)))
+        if (GUILayout.Button(XuaImguiGuard.Plain(mark + title), _theme.Header(tone), GUILayout.Height(28)))
             entry.Value = !open;
         return entry.Value;
     }
 
-    GUIStyle HelpStyle()
+    GUIStyle HelpStyle() => _theme.Body;
+
+    bool ActionButton(string text, UiTone tone, params GUILayoutOption[] options) =>
+        GUILayout.Button(XuaImguiGuard.Plain(text), _theme.Action(tone), options);
+
+    void DrawExpressionSection()
     {
-        if (_helpStyle == null)
+        if (!DrawFoldout("当前表情", _foldExpression, UiTone.Violet))
+            return;
+
+        var targets = GetTargetChaControls();
+        if (targets.Count == 0)
         {
-            _helpStyle = new GUIStyle(GUI.skin.label);
-            _helpStyle.wordWrap = true;
+            XuaImguiGuard.Label("请选中一个角色", _theme.WarningText);
+            return;
         }
-        return _helpStyle;
+
+        foreach (ChaControl character in targets)
+        {
+            GUILayout.BeginVertical(GUI.skin.box);
+            XuaImguiGuard.Label(CharacterAlphaMaskTools.GetDisplayName(character), _theme.Heading);
+            var status = character.fileStatus;
+            if (status == null || character.eyesCtrl == null || character.eyebrowCtrl == null || character.mouthCtrl == null)
+            {
+                XuaImguiGuard.Label("正在等待表情数据", HelpStyle());
+                GUILayout.EndVertical();
+                continue;
+            }
+
+            string eyebrow = CharacterExpressionNames.Eyebrow(character.GetEyebrowPtn());
+            string eyes = CharacterExpressionNames.Eyes(character);
+            string mouth = CharacterExpressionNames.Mouth(character.GetMouthPtn());
+            XuaImguiGuard.Label("眉毛　" + eyebrow, HelpStyle());
+            XuaImguiGuard.Label("眼睛　" + eyes + "　睁开 " + status.eyesOpenMax.ToString("P0"), HelpStyle());
+            float mouthOpen = character.mouthCtrl.FixedRate;
+            string mouthOpenText = mouthOpen < 0f ? "自动开合" : "张开 " + mouthOpen.ToString("P0");
+            XuaImguiGuard.Label("嘴型　" + mouth + "　" + mouthOpenText, HelpStyle());
+            XuaImguiGuard.Label("自动眨眼　" + (character.GetEyesBlinkFlag() ? "开" : "关"), HelpStyle());
+            GUILayout.EndVertical();
+        }
     }
 
     void DrawAlphaMaskSection(GUILayoutOption[] elementOptions)
     {
-        if (!DrawFoldout("Alpha Mask", _foldAlpha))
+        if (!DrawFoldout("Alpha Mask", _foldAlpha, UiTone.Blue))
             return;
 
         XuaImguiGuard.Label("MaterialEditor 把 alpha_a / alpha_b hide 了。", HelpStyle());
@@ -262,7 +320,7 @@ public class MiunaKKAPIUI : MonoBehaviour
 
     void DrawStudioCardExportSection(GUILayoutOption[] elementOptions)
     {
-        if (!DrawFoldout("提取角色卡", _foldCard))
+        if (!DrawFoldout("提取角色卡", _foldCard, UiTone.Teal))
             return;
 
         XuaImguiGuard.Label("把 Studio 场景角色存成 png 卡。", HelpStyle());
@@ -271,7 +329,7 @@ public class MiunaKKAPIUI : MonoBehaviour
 
         int selected = StudioCharacterCardExport.CountSelectedCharacters();
         GUI.enabled = selected > 0;
-        if (XuaImguiGuard.Button("提取选中角色 (" + selected + ")", elementOptions))
+        if (ActionButton("提取选中角色 (" + selected + ")", UiTone.Teal, elementOptions))
             StudioCharacterCardExport.ExportSelected();
         GUI.enabled = true;
 
@@ -295,7 +353,7 @@ public class MiunaKKAPIUI : MonoBehaviour
 
     void DrawStudioSceneNameSection(GUILayoutOption[] elementOptions)
     {
-        if (!DrawFoldout("场景名", _foldSceneName))
+        if (!DrawFoldout("场景名", _foldSceneName, UiTone.Blue))
             return;
 
         XuaImguiGuard.Label("绑定到场景 png 的显示名，类似角色卡 author。『写入并保存场景』会调用原版保存并新建一个场景 PNG。", HelpStyle());
@@ -321,7 +379,7 @@ public class MiunaKKAPIUI : MonoBehaviour
         XuaImguiGuard.Label(status, HelpStyle());
 
         GUILayout.BeginHorizontal();
-        if (XuaImguiGuard.Button("写入并保存场景", GUILayout.Height(24)))
+        if (ActionButton("写入并保存场景", UiTone.Blue, GUILayout.Height(26)))
             StudioSceneNameTools.PersistAndSaveScene();
         if (XuaImguiGuard.Button("从存档读取", GUILayout.Height(24)))
             StudioSceneNameTools.SetName(StudioSceneNameTools.TryReadFromExtendedSave());
@@ -332,7 +390,7 @@ public class MiunaKKAPIUI : MonoBehaviour
 
     void DrawStudioAmbientSection(GUILayoutOption[] elementOptions)
     {
-        if (!DrawFoldout("Studio 环境光", _foldAmbient))
+        if (!DrawFoldout("Studio 环境光", _foldAmbient, UiTone.Amber))
             return;
 
         XuaImguiGuard.Label("原版只有全体陰影，不能调 RenderSettings Ambient。", HelpStyle());
